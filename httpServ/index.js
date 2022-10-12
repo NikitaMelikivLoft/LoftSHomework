@@ -2,10 +2,9 @@ const express = require("express")
 
 const app=express()
 
-const limitTime=20;
-const Delay=1000;
-const PORT= 3000;
-
+const limitTime=+process.env.EXT || 20;
+const Delay= +process.env.INT || 1000;
+const PORT = process.env.PORT || 3000;
 
 let connect=[];
 

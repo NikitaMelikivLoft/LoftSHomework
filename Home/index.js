@@ -1,77 +1,92 @@
-const path = require("path");
-const util = require("util");
-const fs = require("fs");
+const yargs = require('yargs')
+const path =require('path')
+const fs= require('fs')
+const util = require('util');
+const { resolveAny } = require('dns');
+const readFile = util.promisify(fs.readFile);
+const writeFile = util.promisify(fs.writeFile);
 
-const readdir = util.promisify(fs.readdir);
 
-const config = {
-  typeDirs: [
-    { type: ".txt", directory: "" },
-  ]
+const args = yargs
+.usage('Usage: node $0 [options]')
+.help('help')
+.alias('help','h')
+.version('0.0.1')
+.alias('version','v')
+.option('entry', {
+  alias: 'e',
+  describe: 'Указывает путь к читаемой директории',
+  demandOption: true
+})
+.option('dist', {
+   alias:'d',
+   describe:'Путь куда выложить',
+   default: './dist'
+})
+.option('delete',{
+    alias: 'D',
+    describe: 'Будет ли удалять?',
+    default: false,
+    boolean: true
+})
+.argv
+
+const config= {
+ entry: path.normalize(path.resolve(__dirname, args.entry)),
+ dist: path.normalize(path.resolve(__dirname, args.dist)),
+ isDelete: args.delete
+}
+
+
+const copy = async (sourceDir, destDir, file) => {
+  destDir = path.join(destDir, file.charAt(0).toLowerCase());
+  const destFile = path.join(destDir, file);
+  const sourceFile = path.join(sourceDir, file);
+
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir);
+  }
+  let prochit;
+  prochit =  fs.readFileSync(sourceFile);
+config.log
+
+    fs.writeFileSync(destFile, prochit);
+  
+
+  return true;
 };
 
 
+function sorter(source){
 
-const directory = process.argv[2];
-const directoryout = process.argv[3];
+  return new Promise((resolve, reject) => {
+ try{
+      fs.readdirSync(source).forEach(file => {
+        const state = fs.statSync(path.join(source, file));
+        const curPath=path.resolve(source, file);
 
+        console.log(curPath)
+      if(state.isDirectory()){
+      sorter(curPath)
 
-
-if (!fs.existsSync(directoryout)) {
-  fs.mkdirSync(directoryout);
-}
-if (!directory) {
-  console.log("Specify target directory");
-  return;
-}
-
-function createDir(src, cb){
-  //проверка есть ли папка
-  if(!fs.existsSync(src)){
-      fs.mkdir(src,(err)=>{
-     
-         if(err)  throw err
-
-
-         cb()
-      })
-  }else{
-     cb()
+throw(err)
+      }  
+      else
+      {
+        
+        if (!fs.existsSync(config.dist)) {
+          fs.mkdirSync(config.dist);
+        }
+        
+       copy(source,config.dist,file)
+      }
+    });
+    resolve(true);
   }
-}
-
-[...config.typeDirs, { directory: "" }].map(d => {
-  const dirname = `${directory}/${d.directory}`;
-  if (!fs.existsSync(dirname)) {
-    fs.mkdirSync(dirname);
-  }
-});
-
-// Move files
-(async () => {
-  const files = await readdir(directory);
-
-  files.forEach(file => {
-    const fLetter = file.charAt(0).toLowerCase();
-    if (!fLetter) {
-      return;
-    }
-
- 
+  catch(err) {
   
-    const oldPath = path.join(__dirname, directory, file);
-    const newPath = path.join(__dirname,directoryout, fLetter, file);
-console.log(newPath);
-    // Moving files using rename
+  }
 
-    createDir(directoryout, ()=>{
-      const innerPath=path.resolve(directoryout, file.charAt(0).toLowerCase())
-     createDir(innerPath,()=>{
-         fs.copyFile(oldPath, newPath,(err)=>{
-             if(err)  throw err
-         })
-     })
-}) 
-   
-  });
-})(); 
+}
+)}
+sorter(config.entry)
