@@ -1,10 +1,8 @@
 const yargs = require('yargs')
 const path =require('path')
 const fs= require('fs')
-const util = require('util');
-const { resolveAny } = require('dns');
-const readFile = util.promisify(fs.readFile);
-const writeFile = util.promisify(fs.writeFile);
+const{ mkdir, reafdir, stats,copyFile}=require('./modules/fs')
+
 
 
 const args = yargs
@@ -37,56 +35,34 @@ const config= {
  isDelete: args.delete
 }
 
+async function sorter2(src){
+    const files=await reafdir(src)
 
-const copy = async (sourceDir, destDir, file) => {
-  destDir = path.join(destDir, file.charAt(0).toLowerCase());
-  const destFile = path.join(destDir, file);
-  const sourceFile = path.join(sourceDir, file);
-
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir);
-  }
-  let prochit;
-  prochit =  fs.readFileSync(sourceFile);
-config.log
-
-    fs.writeFileSync(destFile, prochit);
-  
-
-  return true;
-};
-
-
-function sorter(source){
-
-  return new Promise((resolve, reject) => {
- try{
-      fs.readdirSync(source).forEach(file => {
-        const state = fs.statSync(path.join(source, file));
-        const curPath=path.resolve(source, file);
-
-        console.log(curPath)
-      if(state.isDirectory()){
-      sorter(curPath)
-
-throw(err)
-      }  
-      else
-      {
-        
-        if (!fs.existsSync(config.dist)) {
-          fs.mkdirSync(config.dist);
-        }
-        
-       copy(source,config.dist,file)
-      }
-    });
-    resolve(true);
-  }
-  catch(err) {
-  
-  }
+    for (const file of files) {
+      const currPath=path.resolve(src, file);
+      const stat= await stats(currPath)
+      if(stat.isDirectory()){
+        await sorter2(currPath)
+    }
+    else{
+     const innerPath=path.resolve(config.dist, file.charAt(0).toLowerCase())
+    
+     await mkdir(config.dist)
+     await mkdir(innerPath)
+     await copyFile(currPath, path.resolve(innerPath,file) )
+     console.log(currPath)
+    }
 
 }
-)}
-sorter(config.entry)
+}
+
+(async function(){
+try{
+  await sorter2(config.entry)
+  console.log('end')
+} catch(error){
+  console.log(error)
+}
+}())
+
+
